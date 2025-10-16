@@ -6,14 +6,17 @@ import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 
 public class ChatServer {
-    private static final int PORT = 12345;
-    private static Set<PrintWriter> clientWriters = new HashSet<>();
+    static int PORT = 12345;
+    static String LOG_FILE;
+    static Set<PrintWriter> clientWriters = new HashSet<>();
 
     public static void main(String[] args) {
-        System.out.println("Chat server started...");
+        loadConfig();
+        System.out.println("Chat server started on port " + PORT + "...");
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (true) {
@@ -24,10 +27,23 @@ public class ChatServer {
         }
     }
 
-    private static class ClientHandler extends Thread {
-        private Socket socket;
-        private PrintWriter out;
-        private BufferedReader in;
+    static void loadConfig() {
+        Properties properties = new Properties();
+        try (InputStream input = new FileInputStream("config.properties")) {
+            properties.load(input);
+            PORT = Integer.parseInt(properties.getProperty("port", "12345"));
+            LOG_FILE = properties.getProperty("logFile", "file.log");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            PORT = 12345;
+            LOG_FILE = "file.log";
+        }
+    }
+
+    static class ClientHandler extends Thread {
+        Socket socket;
+        PrintWriter out;
+        BufferedReader in;
         private String userName;
 
         public ClientHandler(Socket socket) {
@@ -68,7 +84,7 @@ public class ChatServer {
             }
         }
 
-        private void sendMessageToClients(String message) {
+        void sendMessageToClients(String message) {
             synchronized (clientWriters) {
                 for (PrintWriter writer : clientWriters) {
                     writer.println(message);
@@ -77,7 +93,7 @@ public class ChatServer {
         }
 
         private void log(String message) {
-            try (FileWriter fw = new FileWriter("file.log", true);
+            try (FileWriter fw = new FileWriter(LOG_FILE, true);
                  BufferedWriter bw = new BufferedWriter(fw);
                  PrintWriter out = new PrintWriter(bw)) {
                 String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
