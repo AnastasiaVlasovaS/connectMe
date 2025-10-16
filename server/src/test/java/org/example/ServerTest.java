@@ -51,6 +51,7 @@ public class ServerTest {
         clientHandler.start();
         clientHandler.run();
         Assertions.assertFalse(ChatServer.clientWriters.contains(mockOut));
+
     }
 }
 
